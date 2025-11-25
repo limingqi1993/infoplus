@@ -1,10 +1,8 @@
 import { GoogleGenAI } from "@google/genai";
 import { SourceLink, Language } from "../types";
 
-// NOTE: We do NOT initialize `ai` at the top level here.
-// In a Vite/Browser environment, top-level execution happens before our `index.tsx` polyfill runs,
-// which would cause a "process is not defined" crash.
-// Instead, we initialize it lazily inside the function.
+// As per strict coding guidelines, the API key must be obtained exclusively from the environment variable process.env.API_KEY.
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 interface SearchResult {
   text: string;
@@ -12,24 +10,16 @@ interface SearchResult {
 }
 
 export const fetchTopicUpdate = async (topicQuery: string, language: Language): Promise<SearchResult> => {
-  // Debug log to check if key is loaded
-  // @ts-ignore
-  const apiKey = process.env.API_KEY;
-  
-  if (!apiKey) {
-    console.error("CRITICAL ERROR: API Key is missing in process.env.API_KEY");
-    console.log("Make sure VITE_API_KEY is set in Vercel Environment Variables.");
+  if (!process.env.API_KEY) {
+    console.error("API Key is missing. Please set API_KEY in your environment variables.");
     return {
       text: language === 'zh' 
-        ? "配置错误：未找到API密钥。请在 Vercel 设置中添加 VITE_API_KEY 并重新部署。" 
-        : "Configuration Error: API Key missing. Please add VITE_API_KEY in Vercel settings and redeploy.",
+        ? "配置错误：未找到API密钥。请在设置中添加 API_KEY。" 
+        : "Configuration Error: API Key missing. Please add API_KEY in settings.",
       sources: []
     };
   }
 
-  // Initialize the client strictly using the process.env.API_KEY as per guidelines
-  // @ts-ignore
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const modelId = "gemini-2.5-flash";
   
   const langInstruction = language === 'zh' 
