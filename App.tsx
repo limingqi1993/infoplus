@@ -203,10 +203,8 @@ const ContentRenderer = ({ content, sources }: { content: string, sources: Sourc
 const BottomNav = ({ currentView, setView, lang }: { currentView: ViewState; setView: (v: ViewState) => void, lang: Language }) => {
   const t = translations[lang].nav;
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50">
-        <div className="absolute inset-0 bg-white/80 backdrop-blur-xl border-t border-gray-200/50" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}></div>
-        
-        <div className="relative flex justify-around items-center px-6 h-[60px] pb-[env(safe-area-inset-bottom)] box-content">
+    <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-t border-gray-200/50 pb-[env(safe-area-inset-bottom)]">
+        <div className="flex justify-around items-center px-6 h-[60px]">
             <button 
                 onClick={() => setView('feed')}
                 className={`flex flex-col items-center justify-center space-y-1 w-20 transition-all duration-300 ${currentView === 'feed' ? 'text-black' : 'text-gray-400 hover:text-gray-500'}`}
@@ -217,7 +215,7 @@ const BottomNav = ({ currentView, setView, lang }: { currentView: ViewState; set
 
             <button 
                 onClick={() => setView('add')}
-                className="group relative -top-4"
+                className="group relative -top-5"
             >
                 <div className="absolute inset-0 bg-black rounded-full shadow-lg opacity-90 blur-sm group-active:scale-95 transition-transform duration-200"></div>
                 <div className="relative bg-black text-white w-14 h-14 rounded-full flex items-center justify-center shadow-2xl group-active:scale-95 transition-transform duration-200">
@@ -264,37 +262,6 @@ const FeedCard: React.FC<{
         return date.toLocaleDateString(lang === 'zh' ? 'zh-CN' : 'en-US', { month: 'short', day: 'numeric' });
     };
 
-    // Long press logic
-    const [pressTimer, setPressTimer] = useState<number | any>(null);
-    const [longPressTriggered, setLongPressTriggered] = useState(false);
-    const [isShaking, setIsShaking] = useState(false);
-
-    const handleStart = () => {
-        setLongPressTriggered(false);
-        const timer = setTimeout(() => {
-            onToggleFavorite();
-            setLongPressTriggered(true);
-            
-            // Trigger Shake Animation
-            setIsShaking(true);
-            setTimeout(() => setIsShaking(false), 500); 
-
-            // Trigger Vibration
-            if (navigator.vibrate) navigator.vibrate(50);
-        }, 600); // 600ms for long press
-        setPressTimer(timer);
-    };
-
-    const handleEnd = () => {
-        if (pressTimer) clearTimeout(pressTimer);
-    };
-
-    const handleClick = () => {
-        if (!longPressTriggered) {
-            onClick();
-        }
-    };
-
     // Improved Image URL: Editorial style + fallback
     const displayImage = imgError 
         ? null 
@@ -316,13 +283,8 @@ const FeedCard: React.FC<{
 
     return (
         <article 
-            className={`bg-white rounded-[2rem] shadow-soft mb-6 overflow-hidden transition-all duration-300 transform backface-hidden select-none hover:shadow-float ${isShaking ? 'animate-shake' : ''}`}
-            onTouchStart={handleStart}
-            onTouchEnd={handleEnd}
-            onMouseDown={handleStart}
-            onMouseUp={handleEnd}
-            onMouseLeave={handleEnd}
-            onClick={handleClick}
+            className="bg-white rounded-[2rem] shadow-soft mb-6 overflow-hidden transition-all duration-300 transform backface-hidden select-none hover:shadow-float"
+            onClick={onClick}
         >
             {/* Cover Image */}
             <div className="h-52 w-full bg-gray-100 relative overflow-hidden">
@@ -353,7 +315,7 @@ const FeedCard: React.FC<{
                 </div>
                  
                 {/* Favorite Button (Visible interaction point) */}
-                <div className="absolute top-4 right-4 z-20" onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}>
+                <div className="absolute top-4 right-4 z-20 pointer-events-auto" onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}>
                     <div className={`p-2.5 rounded-full backdrop-blur-md transition-all duration-300 ${isFavorite ? 'bg-white shadow-lg scale-110' : 'bg-black/20 hover:bg-black/30'}`}>
                         <HeartIcon 
                             className={`w-5 h-5 transition-colors duration-300 ${isFavorite ? 'text-red-500' : 'text-white'}`} 
@@ -1077,7 +1039,7 @@ export default function App() {
   };
 
   return (
-    <div className="bg-[#F2F2F7] min-h-screen text-slate-900 font-sans mx-auto relative overflow-hidden selection:bg-blue-100">
+    <div className="bg-[#F2F2F7] min-h-[100dvh] text-slate-900 font-sans mx-auto relative overflow-hidden selection:bg-blue-100">
       {/* Header - Transparent Blur Style */}
       <div className="sticky top-0 z-40 px-6 py-3 bg-white/80 backdrop-blur-xl border-b border-gray-200/50 transition-all">
         <div className="flex items-center justify-between max-w-lg mx-auto">
