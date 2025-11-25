@@ -27,14 +27,13 @@ const translations = {
       favorites: "Favorites"
     },
     add: {
-      title: "New Topic",
-      labelQuery: "Topic of Interest",
-      placeholderQuery: "e.g., SpaceX, Generative AI...",
-      descQuery: "We'll curate sources from Global News & Social Media.",
-      labelTime: "Daily Summary",
-      descTime: "Delivery time for your digest.",
+      title: "New Tracker",
+      labelQuery: "Topic to Track",
+      placeholderQuery: "What do you want to know?",
+      descQuery: "AI will curate the latest updates for you.",
+      inspirationTitle: "Inspiration",
       btnLoading: "Creating...",
-      btnStart: "Track Topic"
+      btnStart: "Start Tracking"
     },
     mine: {
       title: "Library",
@@ -74,11 +73,10 @@ const translations = {
     },
     add: {
       title: "新建追踪",
-      labelQuery: "感兴趣的主题",
-      placeholderQuery: "例如：SpaceX 星舰，人工智能趋势...",
-      descQuery: "AI 将整合全球新闻媒体与社交网络的信息。",
-      labelTime: "推送时间",
-      descTime: "我们将在该时段为您生成日报。",
+      labelQuery: "追踪主题",
+      placeholderQuery: "你想了解什么？",
+      descQuery: "AI 将整合全球最新动态。",
+      inspirationTitle: "灵感推荐",
       btnLoading: "创建中...",
       btnStart: "开始追踪"
     },
@@ -388,6 +386,85 @@ const FeedCard: React.FC<{
     );
 };
 
+const ThinkingProcess = ({ lang }: { lang: Language }) => {
+  const [currentStep, setCurrentStep] = useState(0);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  
+  const steps = lang === 'zh' ? [
+    "正在初始化智能代理...",
+    "正在连接全球资讯网络...",
+    "正在深度检索相关动态...",
+    "正在阅读并分析多源信息...",
+    "正在进行交叉验证...",
+    "正在生成智能摘要报告..."
+  ] : [
+    "Initializing AI agent...",
+    "Connecting to global news network...",
+    "Deep searching for updates...",
+    "Reading and analyzing sources...",
+    "Cross-referencing facts...",
+    "Generating intelligence summary..."
+  ];
+
+  useEffect(() => {
+    setCurrentStep(0);
+    const interval = setInterval(() => {
+      setCurrentStep(prev => {
+        if (prev < steps.length - 1) return prev + 1;
+        return prev;
+      });
+    }, 1200);
+    return () => clearInterval(interval);
+  }, [lang]);
+
+  // Auto-scroll to the bottom of the log
+  useEffect(() => {
+    if (scrollRef.current) {
+        scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [currentStep]);
+
+  return (
+    <div className="mb-6 mx-1 bg-white rounded-2xl shadow-soft border border-blue-50 overflow-hidden animate-fade-in">
+        <div className="bg-blue-50/50 px-4 py-3 flex items-center justify-between border-b border-blue-100/30">
+             <div className="flex items-center space-x-2">
+                 <div className="relative flex h-3 w-3">
+                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                   <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
+                 </div>
+                 <span className="text-xs font-bold text-blue-600 uppercase tracking-wider">
+                    {lang === 'zh' ? 'AI 思考中' : 'AI Processing'}
+                 </span>
+             </div>
+             <div className="text-[10px] font-mono text-blue-400">
+                {Math.min((currentStep + 1) / steps.length * 100, 99).toFixed(0)}%
+             </div>
+        </div>
+        
+        {/* Constrained height to approx 3 lines (around 80-90px) with auto-scroll */}
+        <div 
+            ref={scrollRef}
+            className="p-4 bg-white h-[90px] overflow-y-auto scroll-smooth flex flex-col"
+        >
+            <div className="space-y-2">
+                {steps.map((step, index) => {
+                    if (index > currentStep) return null;
+                    const isCurrent = index === currentStep;
+                    return (
+                        <div key={index} className={`flex items-start space-x-3 text-sm transition-all duration-500 ${isCurrent ? 'opacity-100 translate-x-0' : 'opacity-50'}`}>
+                            <div className={`mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0 ${isCurrent ? 'bg-blue-500 animate-pulse' : 'bg-gray-300'}`} />
+                            <span className={`${isCurrent ? 'text-gray-800 font-medium' : 'text-gray-400'}`}>
+                                {step}
+                            </span>
+                        </div>
+                    )
+                })}
+            </div>
+        </div>
+    </div>
+  );
+};
+
 // 2. Feed Page
 const FeedView = ({ 
   feed, 
@@ -436,9 +513,7 @@ const FeedView = ({
       </div>
 
       {isRefreshing && (
-        <div className="mb-6 bg-white/50 backdrop-blur-sm border border-blue-100/50 text-blue-700 px-4 py-3 rounded-2xl flex items-center justify-center animate-pulse shadow-sm">
-          <span className="text-sm font-medium tracking-wide">{t.loading}</span>
-        </div>
+        <ThinkingProcess lang={lang} />
       )}
 
       {feed.length === 0 && !isRefreshing && (
@@ -465,8 +540,32 @@ const FeedView = ({
 const AddTopicView = ({ onAdd, lang }: { onAdd: (topic: Topic) => void, lang: Language }) => {
   const t = translations[lang].add;
   const [query, setQuery] = useState('');
-  const [time, setTime] = useState('07:00');
   const [loading, setLoading] = useState(false);
+  const [activeCategory, setActiveCategory] = useState<string>('');
+
+  // Inspiration Data
+  const RECOMMENDATIONS = {
+      en: {
+        "Tech": ["Generative AI Trends", "SpaceX Starship Updates", "Apple Product Rumors", "Cybersecurity Threats", "Quantum Computing"],
+        "Finance": ["Global Stock Markets", "Cryptocurrency Regulation", "Fed Interest Rates", "Emerging Markets", "Real Estate Trends"],
+        "Science": ["Climate Change Research", "Space Exploration", "Medical Breakthroughs", "Neuroscience", "Renewable Energy"],
+        "Lifestyle": ["Minimalist Living", "Digital Nomad Tips", "Healthy Recipes", "Meditation Practices", "Travel Deals"]
+      },
+      zh: {
+        "科技": ["生成式 AI 趋势", "SpaceX 星舰进展", "苹果新品爆料", "网络安全动态", "量子计算进展"],
+        "金融": ["全球股市行情", "加密货币监管", "美联储加息政策", "新兴市场投资", "房地产市场分析"],
+        "科学": ["气候变化研究", "太空探索最新消息", "医学重大突破", "脑科学新发现", "可再生能源"],
+        "生活": ["极简主义生活", "数字游民指南", "健康食谱推荐", "冥想与正念", "特价旅行"]
+      }
+  };
+
+  const categories = Object.keys(RECOMMENDATIONS[lang]);
+  
+  useEffect(() => {
+    if (categories.length > 0 && !activeCategory) {
+        setActiveCategory(categories[0]);
+    }
+  }, [lang, categories]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -477,7 +576,7 @@ const AddTopicView = ({ onAdd, lang }: { onAdd: (topic: Topic) => void, lang: La
       const newTopic: Topic = {
         id: crypto.randomUUID(),
         query: query.trim(),
-        scheduleTime: time,
+        scheduleTime: "08:00", // Default value since we removed user input
         createdAt: Date.now()
       };
       onAdd(newTopic);
@@ -486,41 +585,74 @@ const AddTopicView = ({ onAdd, lang }: { onAdd: (topic: Topic) => void, lang: La
   };
 
   return (
-    <div className="p-6 pb-28 h-full flex flex-col pt-8 max-w-lg mx-auto">
-      <h1 className="text-3xl font-bold text-gray-900 mb-8 tracking-tight">{t.title}</h1>
+    // Fixed height container to manage internal scrolling.
+    // h-[calc(100vh-140px)] accounts for Header (approx 60px) and BottomNav (approx 80px)
+    <div className="flex flex-col h-[calc(100vh-140px)] px-6 pt-6 max-w-lg mx-auto">
+      <h1 className="text-3xl font-bold text-gray-900 mb-6 shrink-0 tracking-tight">{t.title}</h1>
       
-      <form onSubmit={handleSubmit} className="flex-1 space-y-8">
-        <div className="space-y-3">
+      <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0">
+        <div className="space-y-3 mb-6 shrink-0">
           <label className="block text-sm font-semibold text-gray-900 ml-1">{t.labelQuery}</label>
           <div className="relative group">
             <textarea 
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={t.placeholderQuery}
-                className="w-full p-5 rounded-3xl border-0 bg-white shadow-soft text-lg text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-blue-500/20 outline-none resize-none h-40 transition-shadow"
+                className="w-full p-5 rounded-3xl border-0 bg-white shadow-soft text-lg text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-blue-500/20 outline-none resize-none h-32 transition-shadow"
             />
           </div>
           <p className="text-xs text-gray-500 ml-2 font-medium">{t.descQuery}</p>
         </div>
 
-        <div className="space-y-3">
-          <label className="block text-sm font-semibold text-gray-900 ml-1">{t.labelTime}</label>
-          <div className="relative">
-             <input 
-              type="time" 
-              value={time}
-              onChange={(e) => setTime(e.target.value)}
-              className="w-full p-5 rounded-3xl border-0 bg-white shadow-soft text-xl text-gray-800 font-medium tracking-wide focus:ring-2 focus:ring-blue-500/20 outline-none"
-            />
-          </div>
-          <p className="text-xs text-gray-500 ml-2 font-medium">{t.descTime}</p>
+        {/* Inspiration Section: Flex-1 to fill space, overflow-y-auto to scroll internally */}
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+             <h3 className="text-sm font-semibold text-gray-900 ml-1 mb-4 flex items-center shrink-0">
+                <span className="bg-yellow-100 text-yellow-700 p-1 rounded-md mr-2">
+                    <GlobeIcon className="w-3 h-3" />
+                </span>
+                {t.inspirationTitle}
+             </h3>
+             
+             {/* Categories Tabs */}
+             <div className="flex space-x-2 overflow-x-auto pb-4 scrollbar-hide px-1 shrink-0">
+                 {categories.map(cat => (
+                     <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setActiveCategory(cat)}
+                        className={`px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-300 ${activeCategory === cat ? 'bg-black text-white shadow-md transform scale-105' : 'bg-white text-gray-500 border border-gray-100 hover:bg-gray-50'}`}
+                     >
+                         {cat}
+                     </button>
+                 ))}
+             </div>
+
+             {/* Topic Chips List: Scrollable Area */}
+             <div className="flex-1 overflow-y-auto px-1 pb-2 scrollbar-hide">
+                <div className="grid grid-cols-1 gap-3">
+                    {activeCategory && (RECOMMENDATIONS[lang] as any)[activeCategory]?.map((topic: string) => (
+                        <button
+                            key={topic}
+                            type="button"
+                            onClick={() => setQuery(topic)}
+                            className="text-left px-5 py-3 bg-white rounded-xl border border-gray-50 shadow-sm hover:shadow-md transition-all active:scale-[0.98] group flex justify-between items-center"
+                        >
+                            <span className="text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors">{topic}</span>
+                            <div className="w-6 h-6 rounded-full bg-blue-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                <AddIcon className="w-3 h-3 text-blue-500" />
+                            </div>
+                        </button>
+                    ))}
+                </div>
+             </div>
         </div>
 
-        <div className="pt-8">
+        {/* Button: Fixed at bottom of this container, not sticky over content */}
+        <div className="pt-4 pb-2 shrink-0 bg-transparent">
           <button 
             type="submit"
             disabled={!query.trim() || loading}
-            className={`w-full py-5 rounded-full text-white font-semibold text-lg shadow-lg shadow-blue-500/30 transition-all transform active:scale-[0.98] ${!query.trim() ? 'bg-gray-300 shadow-none cursor-not-allowed text-gray-500' : 'bg-black hover:bg-gray-900'}`}
+            className={`w-full py-4 rounded-full text-white font-semibold text-lg shadow-xl shadow-blue-500/20 transition-all transform active:scale-[0.98] ${!query.trim() ? 'bg-gray-300 shadow-none cursor-not-allowed text-gray-500' : 'bg-black hover:bg-gray-900'}`}
           >
             {loading ? t.btnLoading : t.btnStart}
           </button>
@@ -576,9 +708,9 @@ const SwipeableTopicItem: React.FC<{ topic: Topic, onDelete: (id: string) => voi
             >
                 <div className="flex-1 pr-4">
                     <h3 className="font-semibold text-gray-900 text-[15px]">{topic.query}</h3>
+                    {/* Removed time display here as well since we removed input */}
                     <div className="flex items-center text-xs text-gray-400 mt-1 font-medium">
-                        <ClockIcon className="w-3 h-3 mr-1" />
-                        <span>{translations[lang].mine.dailyAt} {topic.scheduleTime}</span>
+                        <span className="bg-gray-100 px-2 py-0.5 rounded text-[10px]">Auto-Update</span>
                     </div>
                 </div>
             </div>
@@ -870,8 +1002,6 @@ export default function App() {
             return [itemToSave, ...prev];
         }
     });
-    // This vibration is now handled in the FeedCard long press logic for better feedback sync
-    // if (navigator.vibrate) navigator.vibrate(50);
   };
 
   const handleItemClick = (id: string) => {
