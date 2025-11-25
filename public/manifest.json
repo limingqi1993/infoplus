@@ -1,0 +1,22 @@
+{
+  "name": "InfoPulse AI",
+  "short_name": "InfoPulse",
+  "description": "AI-powered news aggregator",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f1f5f9",
+  "theme_color": "#ffffff",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://esm.sh/lucide-static@0.344.0/icons/globe.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "https://esm.sh/lucide-static@0.344.0/icons/globe.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}

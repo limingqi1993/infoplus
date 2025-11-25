@@ -4,12 +4,27 @@ import App from './App';
 
 console.log("InfoPulse AI: Starting up...");
 
-// Debug check for API Key presence (safe check)
-// @ts-ignore
-if (process.env.API_KEY) {
+// Safe check for API Key presence
+// Uses a robust check that won't throw ReferenceError if 'process' is missing
+const getApiKey = () => {
+  try {
+    // @ts-ignore
+    if (typeof process !== 'undefined' && process?.env?.API_KEY) {
+      // @ts-ignore
+      return process.env.API_KEY;
+    }
+  } catch (e) {
+    // Ignore errors accessing process
+  }
+  return null;
+};
+
+const apiKey = getApiKey();
+
+if (apiKey) {
   console.log("InfoPulse AI: API Key is configured.");
 } else {
-  console.warn("InfoPulse AI: API Key is missing. Please set API_KEY in Vercel environment variables.");
+  console.warn("InfoPulse AI: API Key is missing. Please set API_KEY in variables.");
 }
 
 const rootElement = document.getElementById('root');

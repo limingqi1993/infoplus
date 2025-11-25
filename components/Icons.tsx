@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Plus, User, Clock, Trash2, RefreshCw, ExternalLink, Globe } from 'lucide-react';
+import { Home, Plus, User, Clock, Trash2, RefreshCw, ExternalLink, Globe, Heart, Settings, Image } from 'lucide-react';
 
 export const FeedIcon = ({ className }: { className?: string }) => <Home className={className} />;
 export const AddIcon = ({ className }: { className?: string }) => <Plus className={className} />;
@@ -9,3 +9,6 @@ export const TrashIcon = ({ className }: { className?: string }) => <Trash2 clas
 export const RefreshIcon = ({ className }: { className?: string }) => <RefreshCw className={className} />;
 export const LinkIcon = ({ className }: { className?: string }) => <ExternalLink className={className} />;
 export const GlobeIcon = ({ className }: { className?: string }) => <Globe className={className} />;
+export const HeartIcon = ({ className, fill }: { className?: string, fill?: boolean }) => <Heart className={className} fill={fill ? "currentColor" : "none"} />;
+export const SettingsIcon = ({ className }: { className?: string }) => <Settings className={className} />;
+export const ImageIcon = ({ className }: { className?: string }) => <Image className={className} />;

@@ -18,7 +18,13 @@ export interface FeedItem {
   sources: SourceLink[];
   timestamp: number;
   isRead: boolean;
+  isFavorite?: boolean;
+  imageUrl?: string;
 }
 
 export type ViewState = 'feed' | 'add' | 'mine';
 export type Language = 'en' | 'zh';
+
+export interface AppSettings {
+  excludedSources: string[]; // e.g. ['twitter', 'weibo']
+}
