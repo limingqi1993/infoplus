@@ -1,8 +1,8 @@
 import { GoogleGenAI } from "@google/genai";
 import { SourceLink, Language } from "../types";
 
-const apiKey = process.env.API_KEY || '';
-const ai = new GoogleGenAI({ apiKey });
+// As per strict coding guidelines, the API key must be obtained exclusively from the environment variable process.env.API_KEY.
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 interface SearchResult {
   text: string;
@@ -10,8 +10,14 @@ interface SearchResult {
 }
 
 export const fetchTopicUpdate = async (topicQuery: string, language: Language): Promise<SearchResult> => {
-  if (!apiKey) {
-    throw new Error("API Key is missing.");
+  if (!process.env.API_KEY) {
+    console.error("API Key is missing. Please set API_KEY in your environment variables.");
+    return {
+      text: language === 'zh' 
+        ? "配置错误：未找到API密钥。请在设置中添加 API_KEY。" 
+        : "Configuration Error: API Key missing. Please add API_KEY in settings.",
+      sources: []
+    };
   }
 
   const modelId = "gemini-2.5-flash";
@@ -47,7 +53,6 @@ export const fetchTopicUpdate = async (topicQuery: string, language: Language): 
       contents: prompt,
       config: {
         tools: [{ googleSearch: {} }],
-        // We do not use responseMimeType: 'application/json' because googleSearch is active
       },
     });
 
