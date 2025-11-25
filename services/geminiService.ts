@@ -12,18 +12,23 @@ interface SearchResult {
 }
 
 export const fetchTopicUpdate = async (topicQuery: string, language: Language): Promise<SearchResult> => {
-  // Safe access: by the time this function runs, index.tsx has already polyfilled process.env
-  if (!process.env.API_KEY) {
-    console.error("API Key is missing. Please set VITE_API_KEY in your Vercel environment variables.");
+  // Debug log to check if key is loaded
+  // @ts-ignore
+  const apiKey = process.env.API_KEY;
+  
+  if (!apiKey) {
+    console.error("CRITICAL ERROR: API Key is missing in process.env.API_KEY");
+    console.log("Make sure VITE_API_KEY is set in Vercel Environment Variables.");
     return {
       text: language === 'zh' 
-        ? "配置错误：未找到API密钥。请在 Vercel 设置中添加 VITE_API_KEY。" 
-        : "Configuration Error: API Key missing. Please add VITE_API_KEY in Vercel settings.",
+        ? "配置错误：未找到API密钥。请在 Vercel 设置中添加 VITE_API_KEY 并重新部署。" 
+        : "Configuration Error: API Key missing. Please add VITE_API_KEY in Vercel settings and redeploy.",
       sources: []
     };
   }
 
   // Initialize the client strictly using the process.env.API_KEY as per guidelines
+  // @ts-ignore
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const modelId = "gemini-2.5-flash";
   

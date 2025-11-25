@@ -3,17 +3,16 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 
 // Fix for Vercel/Vite deployment:
-// Polyfill `process.env` so that the Google GenAI SDK (which expects Node.js environment)
-// can access the API key safely without crashing the browser.
-if (typeof process === 'undefined') {
-  (window as any).process = {
-    env: {
-      // Map the Vite-specific environment variable to the process.env key expected by the SDK
-      // @ts-ignore
-      API_KEY: import.meta.env?.VITE_API_KEY || ''
-    }
-  };
+// We have already defined `window.process` in index.html to prevent crash during imports.
+// Now we populate it with the actual values from Vite's import.meta.env.
+// @ts-ignore
+if (window.process && window.process.env) {
+  // @ts-ignore
+  window.process.env.API_KEY = import.meta.env.VITE_API_KEY || '';
 }
+
+// @ts-ignore
+console.log("Environment initialized. Key present:", !!import.meta.env.VITE_API_KEY);
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
