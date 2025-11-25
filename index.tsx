@@ -4,23 +4,12 @@ import App from './App';
 
 console.log("InfoPulse AI: Starting up...");
 
-// Fix for Vercel/Vite deployment:
-// Map the Vite-specific environment variable to the global process.env we defined in index.html
-try {
-  // @ts-ignore
-  if (window.process && window.process.env) {
-    // @ts-ignore
-    const viteKey = import.meta.env?.VITE_API_KEY;
-    if (viteKey) {
-      console.log("InfoPulse AI: API Key injected successfully");
-      // @ts-ignore
-      window.process.env.API_KEY = viteKey;
-    } else {
-      console.warn("InfoPulse AI: VITE_API_KEY not found in import.meta.env");
-    }
-  }
-} catch (e) {
-  console.warn("Environment variable polyfill failed:", e);
+// Debug check for API Key presence (safe check)
+// @ts-ignore
+if (process.env.API_KEY) {
+  console.log("InfoPulse AI: API Key is configured.");
+} else {
+  console.warn("InfoPulse AI: API Key is missing. Please set API_KEY in Vercel environment variables.");
 }
 
 const rootElement = document.getElementById('root');

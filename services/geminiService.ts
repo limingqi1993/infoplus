@@ -12,13 +12,14 @@ interface SearchResult {
 }
 
 export const fetchTopicUpdate = async (topicQuery: string, language: Language): Promise<SearchResult> => {
-  // Safe access: by the time this function runs, index.tsx has already polyfilled process.env
+  // Vite 'define' plugin will replace process.env.API_KEY with the string literal of the key at build time.
+  // If it is missing, it will be undefined.
   if (!process.env.API_KEY) {
-    console.error("API Key is missing. Please set VITE_API_KEY in your Vercel environment variables.");
+    console.error("API Key is missing. Ensure VITE_API_KEY is set in Vercel.");
     return {
       text: language === 'zh' 
-        ? "配置错误：未找到API密钥。请在 Vercel 设置中添加 VITE_API_KEY。" 
-        : "Configuration Error: API Key missing. Please add VITE_API_KEY in Vercel settings.",
+        ? "配置错误：未找到API密钥。请检查 Vercel 环境变量设置 (VITE_API_KEY)。" 
+        : "Configuration Error: API Key missing. Please check Vercel environment variables (VITE_API_KEY).",
       sources: []
     };
   }
