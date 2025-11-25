@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { FeedIcon, AddIcon, MineIcon, ClockIcon, TrashIcon, RefreshIcon, LinkIcon, GlobeIcon, HeartIcon, SettingsIcon } from './components/Icons';
+import { FeedIcon, AddIcon, MineIcon, ClockIcon, TrashIcon, RefreshIcon, LinkIcon, GlobeIcon, HeartIcon, SettingsIcon, ChevronRightIcon, ArrowLeftIcon, ChevronDownIcon } from './components/Icons';
 import { Topic, FeedItem, ViewState, Language, SourceLink, AppSettings } from './types';
 import { fetchTopicUpdate } from './services/geminiService';
 import { 
@@ -39,9 +39,9 @@ const translations = {
     mine: {
       title: "Library",
       subscriptions: "Subscriptions",
-      collections: "Collections",
+      collections: "My Favorites",
       empty: "No subscriptions yet.",
-      emptyCollections: "Saved articles will appear here.",
+      emptyCollections: "No favorites yet.",
       dailyAt: "Daily at",
       settings: "Preferences",
       language: "Language",
@@ -50,7 +50,8 @@ const translations = {
       version: "Version",
       apiKeyStatus: "API Key",
       confirmDelete: "Delete this topic?",
-      deleteHint: "Swipe left to delete"
+      deleteHint: "Swipe left to delete",
+      back: "Back"
     },
     settings: {
       sourcesTitle: "Sources",
@@ -69,7 +70,7 @@ const translations = {
       loading: "AI 正在聚合全网资讯...",
       noUpdates: "暂无更多更新",
       newBadge: "刚刚",
-      favorites: "收藏夹"
+      favorites: "我的收藏"
     },
     add: {
       title: "新建追踪",
@@ -86,7 +87,7 @@ const translations = {
       subscriptions: "订阅管理",
       collections: "我的收藏",
       empty: "尚未订阅任何主题。",
-      emptyCollections: "您收藏的文章将显示在这里。",
+      emptyCollections: "暂无收藏内容",
       dailyAt: "每日",
       settings: "偏好设置",
       language: "语言",
@@ -95,7 +96,8 @@ const translations = {
       version: "版本",
       apiKeyStatus: "API 状态",
       confirmDelete: "确定删除此主题吗？",
-      deleteHint: "向左滑动可删除"
+      deleteHint: "向左滑动可删除",
+      back: "返回"
     },
     settings: {
       sourcesTitle: "来源管理",
@@ -105,10 +107,24 @@ const translations = {
 };
 
 const ALL_SOURCES = [
+  // Social Media
   { id: 'twitter', label: 'X (Twitter)' },
   { id: 'weibo', label: 'Weibo (微博)' },
   { id: 'reddit', label: 'Reddit' },
-  { id: 'weixin', label: 'WeChat (公众号)' }
+  { id: 'weixin', label: 'WeChat (公众号)' },
+  // International News
+  { id: 'nyt', label: 'New York Times' },
+  { id: 'bbc', label: 'BBC News' },
+  { id: 'cnn', label: 'CNN' },
+  { id: 'bloomberg', label: 'Bloomberg' },
+  { id: 'reuters', label: 'Reuters' },
+  { id: 'wsj', label: 'Wall Street Journal' },
+  { id: 'techcrunch', label: 'TechCrunch' },
+  // Domestic/Specialized
+  { id: 'zhihu', label: 'Zhihu (知乎)' },
+  { id: 'bilibili', label: 'Bilibili (哔哩哔哩)' },
+  { id: '36kr', label: '36Kr' },
+  { id: 'toutiao', label: 'Toutiao (今日头条)' }
 ];
 
 // --- Sub-components ---
@@ -185,12 +201,11 @@ const ContentRenderer = ({ content, sources }: { content: string, sources: Sourc
   );
 };
 
-// 1. Navigation Bar (Refined for Apple/Google Style)
+// 1. Navigation Bar
 const BottomNav = ({ currentView, setView, lang }: { currentView: ViewState; setView: (v: ViewState) => void, lang: Language }) => {
   const t = translations[lang].nav;
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50">
-        {/* Blur container */}
         <div className="absolute inset-0 bg-white/80 backdrop-blur-xl border-t border-gray-200/50" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}></div>
         
         <div className="relative flex justify-around items-center px-6 h-[60px] pb-[env(safe-area-inset-bottom)] box-content">
@@ -202,7 +217,6 @@ const BottomNav = ({ currentView, setView, lang }: { currentView: ViewState; set
                 <span className="text-[10px] font-medium tracking-wide">{t.feed}</span>
             </button>
 
-            {/* Center Primary Action - Sleek & Integrated */}
             <button 
                 onClick={() => setView('add')}
                 className="group relative -top-4"
@@ -225,7 +239,7 @@ const BottomNav = ({ currentView, setView, lang }: { currentView: ViewState; set
   );
 };
 
-// Feed Card Component (Softer shadows, larger radius)
+// Feed Card Component
 const FeedCard: React.FC<{ 
     item: FeedItem; 
     lang: Language; 
@@ -240,12 +254,12 @@ const FeedCard: React.FC<{
     isFavorite
 }) => {
     const t = translations[lang].feed;
+    const [imgError, setImgError] = useState(false);
+
     const formatTime = (ts: number) => {
         const date = new Date(ts);
         const now = new Date();
         const diff = now.getTime() - date.getTime();
-        
-        // Simple relative time for recent items
         if (diff < 24 * 60 * 60 * 1000) {
             return date.toLocaleTimeString(lang === 'zh' ? 'zh-CN' : 'en-US', { hour: '2-digit', minute: '2-digit' });
         }
@@ -254,51 +268,82 @@ const FeedCard: React.FC<{
 
     // Long press logic
     const [pressTimer, setPressTimer] = useState<number | any>(null);
-    const [isPressed, setIsPressed] = useState(false);
+    const [longPressTriggered, setLongPressTriggered] = useState(false);
+    const [isShaking, setIsShaking] = useState(false);
 
-    const handleTouchStart = () => {
-        setIsPressed(true);
+    const handleStart = () => {
+        setLongPressTriggered(false);
         const timer = setTimeout(() => {
             onToggleFavorite();
+            setLongPressTriggered(true);
+            
+            // Trigger Shake Animation
+            setIsShaking(true);
+            setTimeout(() => setIsShaking(false), 500); 
+
+            // Trigger Vibration
             if (navigator.vibrate) navigator.vibrate(50);
-        }, 800);
+        }, 600); // 600ms for long press
         setPressTimer(timer);
     };
 
-    const handleTouchEnd = () => {
-        setIsPressed(false);
+    const handleEnd = () => {
         if (pressTimer) clearTimeout(pressTimer);
     };
 
+    const handleClick = () => {
+        if (!longPressTriggered) {
+            onClick();
+        }
+    };
+
+    // Improved Image URL: Editorial style + fallback
+    const displayImage = imgError 
+        ? null 
+        : (item.imageUrl || `https://image.pollinations.ai/prompt/editorial%20photo%20journalism%20${encodeURIComponent(item.topicQuery)}?width=800&height=400&nologo=true`);
+
     return (
         <article 
-            className={`bg-white rounded-[2rem] shadow-soft mb-6 overflow-hidden transition-all duration-300 transform backface-hidden ${isPressed ? 'scale-[0.98]' : 'hover:shadow-float'}`}
-            onClick={onClick}
-            onTouchStart={handleTouchStart}
-            onTouchEnd={handleTouchEnd}
-            onMouseDown={handleTouchStart}
-            onMouseUp={handleTouchEnd}
-            onMouseLeave={handleTouchEnd}
+            className={`bg-white rounded-[2rem] shadow-soft mb-6 overflow-hidden transition-all duration-300 transform backface-hidden select-none hover:shadow-float ${isShaking ? 'animate-shake' : ''}`}
+            onTouchStart={handleStart}
+            onTouchEnd={handleEnd}
+            onMouseDown={handleStart}
+            onMouseUp={handleEnd}
+            onMouseLeave={handleEnd}
+            onClick={handleClick}
         >
             {/* Cover Image */}
             <div className="h-52 w-full bg-gray-100 relative overflow-hidden">
-                <img 
-                    src={item.imageUrl || `https://image.pollinations.ai/prompt/${encodeURIComponent(item.topicQuery)}?width=800&height=400&nologo=true`} 
-                    alt={item.topicQuery}
-                    className={`w-full h-full object-cover transition-all duration-700 ${item.isRead ? 'opacity-90 grayscale-[20%]' : 'hover:scale-105'}`}
-                    loading="lazy"
-                />
+                {displayImage ? (
+                    <img 
+                        src={displayImage} 
+                        alt={item.topicQuery}
+                        className={`w-full h-full object-cover transition-all duration-700 ${item.isRead ? 'opacity-90 grayscale-[20%]' : 'hover:scale-105'}`}
+                        loading="lazy"
+                        onError={() => setImgError(true)}
+                    />
+                ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+                        <GlobeIcon className="w-12 h-12 text-blue-200" />
+                    </div>
+                )}
+                
                 {/* Refined Gradient Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-6">
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-6 pointer-events-none">
                     <div className="flex justify-between items-end w-full">
-                         <h3 className="text-white font-bold text-xl leading-tight tracking-tight drop-shadow-sm pr-4">
+                         <h3 className="text-white font-bold text-xl leading-tight tracking-tight drop-shadow-sm pr-4 line-clamp-2">
                             {item.topicQuery}
                         </h3>
-                         {isFavorite && (
-                            <div className="bg-white/20 backdrop-blur-md p-2 rounded-full">
-                                <HeartIcon className="text-white w-4 h-4 fill-current" fill />
-                            </div>
-                         )}
+                    </div>
+                </div>
+                 
+                {/* Favorite Button (Visible interaction point) */}
+                <div className="absolute top-4 right-4 z-20" onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}>
+                    <div className={`p-2.5 rounded-full backdrop-blur-md transition-all duration-300 ${isFavorite ? 'bg-white shadow-lg scale-110' : 'bg-black/20 hover:bg-black/30'}`}>
+                        <HeartIcon 
+                            className={`w-5 h-5 transition-colors duration-300 ${isFavorite ? 'text-red-500' : 'text-white'}`} 
+                            fill={isFavorite} 
+                        />
                     </div>
                 </div>
             </div>
@@ -502,12 +547,9 @@ const SwipeableTopicItem: React.FC<{ topic: Topic, onDelete: (id: string) => voi
 
     return (
         <div className="relative overflow-hidden mb-0 first:rounded-t-2xl last:rounded-b-2xl">
-             {/* Background Delete Button */}
             <div className="absolute inset-y-0 right-0 w-24 bg-red-500 flex items-center justify-center text-white font-medium z-0">
                 <TrashIcon className="w-5 h-5" />
             </div>
-
-            {/* Foreground Content */}
             <div 
                 className="bg-white p-5 relative z-10 border-b border-gray-100/80 flex justify-between items-center transition-transform duration-300 ease-out active:bg-gray-50"
                 style={{ transform: `translateX(${offsetX}px)` }}
@@ -522,6 +564,89 @@ const SwipeableTopicItem: React.FC<{ topic: Topic, onDelete: (id: string) => voi
                         <span>{translations[lang].mine.dailyAt} {topic.scheduleTime}</span>
                     </div>
                 </div>
+            </div>
+        </div>
+    );
+};
+
+// Favorites List Sub-Page
+const FavoritesListView = ({ 
+    favorites, 
+    onBack, 
+    lang, 
+    onToggleFavorite 
+}: { 
+    favorites: FeedItem[], 
+    onBack: () => void, 
+    lang: Language, 
+    onToggleFavorite: (item: FeedItem) => void 
+}) => {
+    const t = translations[lang].mine;
+    const [expandedId, setExpandedId] = useState<string | null>(null);
+
+    const toggleExpand = (id: string) => {
+        setExpandedId(prev => prev === id ? null : id);
+    };
+
+    return (
+        <div className="p-0 max-w-lg mx-auto min-h-screen bg-white">
+            <div className="sticky top-0 z-40 bg-white/90 backdrop-blur-xl border-b border-gray-200 px-4 h-14 flex items-center">
+                <button onClick={onBack} className="flex items-center text-blue-600 font-medium -ml-2 p-2 active:opacity-60">
+                    <ArrowLeftIcon className="w-5 h-5 mr-1" />
+                    {t.back}
+                </button>
+                <h1 className="absolute left-1/2 transform -translate-x-1/2 font-bold text-gray-900 text-lg">
+                    {t.collections}
+                </h1>
+            </div>
+            
+            <div className="p-4 pb-28 space-y-4 bg-[#F2F2F7] min-h-screen pt-6">
+                {favorites.length === 0 ? (
+                    <div className="text-center py-20 text-gray-400">
+                        <HeartIcon className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                        <p>{t.emptyCollections}</p>
+                    </div>
+                ) : (
+                    favorites.map(item => (
+                        <div key={item.id} className="bg-white rounded-2xl shadow-sm overflow-hidden transition-all duration-300">
+                            {/* Header / Summary Row */}
+                            <div 
+                                onClick={() => toggleExpand(item.id)}
+                                className="p-4 flex gap-4 items-center active:bg-gray-50 cursor-pointer"
+                            >
+                                <img 
+                                    src={item.imageUrl} 
+                                    className="w-16 h-16 rounded-xl object-cover bg-gray-100 flex-shrink-0" 
+                                    alt="" 
+                                    onError={(e) => (e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxIDEiPjxyZWN0IHdpZHRoPSIxIiBoZWlnaHQ9IjEiIGZpbGw9IiNlNTViNzYiLz48L3N2Zz4=')}
+                                />
+                                <div className="flex-1 min-w-0">
+                                    <h4 className="font-bold text-gray-900 text-[15px] leading-snug line-clamp-2">{item.topicQuery}</h4>
+                                    <div className="flex items-center mt-1.5 space-x-2">
+                                        <span className="text-xs text-gray-400">{new Date(item.timestamp).toLocaleDateString()}</span>
+                                        {expandedId === item.id && <span className="text-xs text-blue-500 font-medium">Reading</span>}
+                                    </div>
+                                </div>
+                                <div className="flex flex-col items-end space-y-2">
+                                     <button 
+                                        onClick={(e) => { e.stopPropagation(); onToggleFavorite(item); }}
+                                        className="p-1.5 rounded-full bg-red-50 text-red-500"
+                                     >
+                                         <HeartIcon className="w-4 h-4" fill />
+                                     </button>
+                                     <ChevronDownIcon className={`w-4 h-4 text-gray-300 transition-transform duration-300 ${expandedId === item.id ? 'rotate-180' : ''}`} />
+                                </div>
+                            </div>
+
+                            {/* Expanded Content */}
+                            {expandedId === item.id && (
+                                <div className="px-5 pb-6 pt-2 border-t border-gray-100 bg-gray-50/30 animate-fade-in">
+                                    <ContentRenderer content={item.content} sources={item.sources} />
+                                </div>
+                            )}
+                        </div>
+                    ))
+                )}
             </div>
         </div>
     );
@@ -548,6 +673,7 @@ const MineView = ({
 }) => {
   const t = translations[lang].mine;
   const [showSources, setShowSources] = useState(false);
+  const [subView, setSubView] = useState<'main' | 'favorites'>('main');
 
   const toggleSource = (sourceId: string) => {
     const currentExcluded = settings.excludedSources;
@@ -560,39 +686,34 @@ const MineView = ({
     onSaveSettings({ ...settings, excludedSources: newExcluded });
   };
 
+  if (subView === 'favorites') {
+      return <FavoritesListView favorites={favorites} onBack={() => setSubView('main')} lang={lang} onToggleFavorite={onToggleFavorite} />;
+  }
+
   return (
-    <div className="p-6 pb-28 pt-8 max-w-lg mx-auto">
+    <div className="p-6 pb-28 pt-8 max-w-lg mx-auto animate-fade-in">
       <h1 className="text-3xl font-bold text-gray-900 mb-8 tracking-tight">{t.title}</h1>
 
-      {/* 1. Favorites Section */}
+      {/* 1. Favorites Entry Point */}
       <section className="mb-10">
         <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 ml-2">
             {t.collections}
         </h2>
-        {favorites.length === 0 ? (
-            <div className="bg-white rounded-2xl p-6 text-center shadow-sm border border-dashed border-gray-200">
-                <p className="text-sm text-gray-400">{t.emptyCollections}</p>
+        <div 
+            onClick={() => setSubView('favorites')}
+            className="bg-white rounded-2xl p-4 shadow-sm flex items-center justify-between cursor-pointer active:scale-[0.98] transition-all hover:shadow-md"
+        >
+            <div className="flex items-center space-x-4">
+                <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center text-red-500">
+                    <HeartIcon className="w-5 h-5" fill />
+                </div>
+                <span className="font-semibold text-gray-900">{t.collections}</span>
             </div>
-        ) : (
-            <div className="space-y-4">
-                {favorites.map(item => (
-                    <div key={item.id} className="bg-white p-4 rounded-2xl shadow-sm hover:shadow-md transition-shadow flex gap-4 items-start">
-                         <img 
-                            src={item.imageUrl} 
-                            className="w-16 h-16 rounded-xl object-cover flex-shrink-0 bg-gray-100 shadow-inner" 
-                            alt=""
-                        />
-                        <div className="flex-1 min-w-0 py-0.5">
-                             <h4 className="text-sm font-bold text-gray-900 line-clamp-2 leading-snug">{item.topicQuery}</h4>
-                             <p className="text-xs text-gray-400 mt-1.5 opacity-80 line-clamp-1">{new Date(item.timestamp).toLocaleDateString()}</p>
-                        </div>
-                        <button onClick={() => onToggleFavorite(item)} className="p-1 text-red-500 hover:bg-red-50 rounded-full transition-colors">
-                            <HeartIcon className="w-5 h-5" fill />
-                        </button>
-                    </div>
-                ))}
+            <div className="flex items-center space-x-2">
+                <span className="text-gray-400 text-sm font-medium">{favorites.length}</span>
+                <ChevronRightIcon className="w-5 h-5 text-gray-300" />
             </div>
-        )}
+        </div>
       </section>
 
       {/* 2. Subscriptions Section (iOS List Style) */}
@@ -669,7 +790,7 @@ const MineView = ({
             </div>
              <div className="p-4 flex justify-between items-center hover:bg-gray-50 transition-colors">
                 <span className="text-[15px] text-gray-900 font-medium">{t.version}</span>
-                <span className="text-xs text-gray-400 font-mono">v1.2.0</span>
+                <span className="text-xs text-gray-400 font-mono">v1.3.1</span>
             </div>
         </div>
       </section>
@@ -727,12 +848,13 @@ export default function App() {
         } else {
             const itemToSave = { ...item, isFavorite: true };
             if (!itemToSave.imageUrl) {
-                 itemToSave.imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(item.topicQuery)}?width=800&height=400&nologo=true`;
+                 itemToSave.imageUrl = `https://image.pollinations.ai/prompt/editorial%20photo%20journalism%20${encodeURIComponent(item.topicQuery)}?width=800&height=400&nologo=true`;
             }
             return [itemToSave, ...prev];
         }
     });
-    if (navigator.vibrate) navigator.vibrate(50);
+    // This vibration is now handled in the FeedCard long press logic for better feedback sync
+    // if (navigator.vibrate) navigator.vibrate(50);
   };
 
   const handleItemClick = (id: string) => {
@@ -747,7 +869,8 @@ export default function App() {
     
     const promises = topicsToUpdate.map(async (topic) => {
         const result = await fetchTopicUpdate(topic.query, language, settings.excludedSources);
-        const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(topic.query)}?width=800&height=400&nologo=true&seed=${Date.now()}`;
+        // Use a more descriptive prompt for Pollinations AI to get better news-like images
+        const imageUrl = `https://image.pollinations.ai/prompt/editorial%20photo%20journalism%20${encodeURIComponent(topic.query)}?width=800&height=400&nologo=true&seed=${Date.now()}`;
 
         const newItem: FeedItem = {
             id: crypto.randomUUID(),
@@ -812,7 +935,6 @@ export default function App() {
       <div className="sticky top-0 z-40 px-6 py-3 bg-white/80 backdrop-blur-xl border-b border-gray-200/50 transition-all">
         <div className="flex items-center justify-between max-w-lg mx-auto">
             <div className="flex items-center space-x-3">
-                 {/* Replaced Box Logo with Clean Typography/Icon combination */}
                  <div className="text-blue-600">
                     <GlobeIcon className="w-6 h-6" />
                  </div>
