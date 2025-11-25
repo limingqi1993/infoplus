@@ -38,6 +38,7 @@ const translations = {
       notifications: "Notifications",
       dataSources: "Data Sources",
       version: "Version",
+      apiKeyStatus: "API Key Status",
       confirmDelete: "Are you sure you want to delete this topic? All related news history will also be removed."
     }
   },
@@ -73,6 +74,7 @@ const translations = {
       notifications: "通知推送",
       dataSources: "数据来源",
       version: "版本",
+      apiKeyStatus: "API Key 状态",
       confirmDelete: "您确定要删除这个主题吗？所有相关的历史消息也将被移除。"
     }
   }
@@ -246,9 +248,6 @@ const FeedView = ({
           </div>
           
           <ContentRenderer content={item.content} sources={item.sources} />
-          
-          {/* Fallback: if sources exist but weren't cited in text, maybe show a small note or just rely on inline. 
-              The requirement is to simplify display, so we hide the big list. */}
         </div>
       ))}
     </div>
@@ -379,6 +378,14 @@ const MineView = ({
         <h2 className="text-lg font-bold text-gray-800 mb-4">{t.settings}</h2>
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 divide-y divide-gray-100">
             
+            {/* API Key Status Check */}
+            <div className="p-4 flex justify-between items-center">
+                <span className="text-sm text-gray-600">{t.apiKeyStatus}</span>
+                <span className={`text-xs font-bold px-2 py-1 rounded ${process.env.API_KEY ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+                    {process.env.API_KEY ? 'Configured (已配置)' : 'Missing (未配置)'}
+                </span>
+            </div>
+
             {/* Language Selector */}
             <div className="p-4 flex justify-between items-center">
                 <span className="text-sm text-gray-600">{t.language}</span>
