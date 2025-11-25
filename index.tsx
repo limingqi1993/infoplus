@@ -2,6 +2,8 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 
+console.log("InfoPulse AI: Starting up...");
+
 // Fix for Vercel/Vite deployment:
 // Map the Vite-specific environment variable to the global process.env we defined in index.html
 try {
@@ -10,8 +12,11 @@ try {
     // @ts-ignore
     const viteKey = import.meta.env?.VITE_API_KEY;
     if (viteKey) {
+      console.log("InfoPulse AI: API Key injected successfully");
       // @ts-ignore
       window.process.env.API_KEY = viteKey;
+    } else {
+      console.warn("InfoPulse AI: VITE_API_KEY not found in import.meta.env");
     }
   }
 } catch (e) {
@@ -30,8 +35,8 @@ try {
       <App />
     </React.StrictMode>
   );
+  console.log("InfoPulse AI: React mounted");
 } catch (err) {
   console.error("React Mount Error:", err);
-  // Allow the global window.onerror in index.html to catch and display this
   throw err; 
 }
