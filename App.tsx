@@ -302,6 +302,20 @@ const FeedCard: React.FC<{
         ? null 
         : (item.imageUrl || `https://image.pollinations.ai/prompt/editorial%20photo%20journalism%20${encodeURIComponent(item.topicQuery)}?width=800&height=400&nologo=true`);
 
+    // Deterministic gradient based on ID
+    const getGradientClass = (id: string) => {
+        const gradients = [
+            "bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500",
+            "bg-gradient-to-br from-blue-600 via-indigo-500 to-violet-500",
+            "bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500",
+            "bg-gradient-to-br from-orange-500 via-red-500 to-pink-600",
+            "bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900"
+        ];
+        let hash = 0;
+        for (let i = 0; i < id.length; i++) hash = id.charCodeAt(i) + ((hash << 5) - hash);
+        return gradients[Math.abs(hash) % gradients.length];
+    };
+
     return (
         <article 
             className={`bg-white rounded-[2rem] shadow-soft mb-6 overflow-hidden transition-all duration-300 transform backface-hidden select-none hover:shadow-float ${isShaking ? 'animate-shake' : ''}`}
@@ -323,8 +337,11 @@ const FeedCard: React.FC<{
                         onError={() => setImgError(true)}
                     />
                 ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-                        <GlobeIcon className="w-12 h-12 text-blue-200" />
+                    <div className={`w-full h-full ${getGradientClass(item.id)} flex flex-col items-center justify-center p-6 text-center`}>
+                        <GlobeIcon className="w-12 h-12 text-white/90 mb-2 drop-shadow-md" />
+                        <span className="text-white/80 font-bold tracking-widest text-[10px] uppercase border border-white/30 px-2 py-1 rounded-md backdrop-blur-sm">
+                            InfoPulse AI
+                        </span>
                     </div>
                 )}
                 
